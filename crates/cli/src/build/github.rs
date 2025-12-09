@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use deadpool::unmanaged::{Object, Pool};
 use futures::stream::{self, StreamExt};
-use landscape2_core::data::{Commit, Contributors, GithubData, Release, RepositoryGithubData};
+use landscape2_core::data::{Commit, Contributors, GitData, Release, RepositoryGitData};
 #[cfg(test)]
 use mockall::automock;
 use octorust::auth::Credentials;
@@ -34,11 +34,11 @@ const GITHUB_TOKENS: &str = "GITHUB_TOKENS";
 /// Collect GitHub data for each of the items repositories in the landscape,
 /// reusing cached data whenever possible.
 #[instrument(skip_all, err)]
-pub(crate) async fn collect_github_data(cache: &Cache, landscape_data: &LandscapeData) -> Result<GithubData> {
+pub(crate) async fn collect_github_data(cache: &Cache, landscape_data: &LandscapeData) -> Result<GitData> {
     debug!("collecting repositories information from github (this may take a while)");
 
     // Read cached data (if available)
-    let mut cached_data: Option<GithubData> = None;
+    let mut cached_data: Option<GitData> = None;
     match cache.read(GITHUB_CACHE_FILE) {
         Ok(Some((_, json_data))) => match serde_json::from_slice(&json_data) {
             Ok(github_data) => cached_data = Some(github_data),
@@ -85,7 +85,7 @@ pub(crate) async fn collect_github_data(cache: &Cache, landscape_data: &Landscap
     } else {
         1
     };
-    let github_data: GithubData = stream::iter(urls)
+    let github_data: GitData = stream::iter(urls)
         .map(|url| async {
             let url = url.clone();
 
@@ -110,7 +110,7 @@ pub(crate) async fn collect_github_data(cache: &Cache, landscape_data: &Landscap
             }
         })
         .buffer_unordered(concurrency)
-        .collect::<BTreeMap<String, Result<RepositoryGithubData>>>()
+        .collect::<BTreeMap<String, Result<RepositoryGitData>>>()
         .await
         .into_iter()
         .filter_map(|(url, result)| {
@@ -131,7 +131,7 @@ pub(crate) async fn collect_github_data(cache: &Cache, landscape_data: &Landscap
 
 /// Collect repository data from GitHub.
 #[instrument(skip_all, err)]
-async fn collect_repository_data(gh: Object<DynGH>, repo_url: &str) -> Result<RepositoryGithubData> {
+async fn collect_repository_data(gh: Object<DynGH>, repo_url: &str) -> Result<RepositoryGitData> {
     // Collect some information from GitHub
     let (owner, repo) = get_owner_and_repo(repo_url)?;
     let gh_repo = gh.get_repository(&owner, &repo).await?;
@@ -143,7 +143,7 @@ async fn collect_repository_data(gh: Object<DynGH>, repo_url: &str) -> Result<Re
     let participation_stats = gh.get_participation_stats(&owner, &repo).await?.all;
 
     // Prepare repository instance using the information collected
-    Ok(RepositoryGithubData {
+    Ok(RepositoryGitData {
         generated_at: Utc::now(),
         contributors: Contributors {
             count: contributors_count,
@@ -161,10 +161,11 @@ async fn collect_repository_data(gh: Object<DynGH>, repo_url: &str) -> Result<Re
                 Some(l.name)
             }
         }),
-        participation_stats,
+        participation_stats: Some(participation_stats),
         stars: gh_repo.stargazers_count,
         topics: gh_repo.topics,
         url: gh_repo.html_url,
+        ..Default::default()
     })
 }
 

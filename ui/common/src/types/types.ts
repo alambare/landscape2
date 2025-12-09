@@ -116,23 +116,28 @@ export interface Repository {
   url: string;
   license?: string;
   branch?: string;
-  github_data?: GithubRepository;
+  git_data?: GitRepository;
   primary: boolean;
 }
 
-export interface GithubRepository {
+export interface GitRepository {
   contributors: Contributors;
   description: string;
-  first_commit: Commit;
+  first_commit?: Commit;
   generated_at: number;
   languages?: { [key: string]: number };
   latest_commit: Commit;
   latest_release?: Release;
-  license: string;
-  participation_stats: number[];
+  license?: string;
   stars: number;
   topics: string[];
   url: string;
+  
+  // GitHub-specific fields
+  participation_stats?: number[];
+  
+  // GitLab-specific fields
+  good_first_issues?: number;
 }
 
 export interface Contributors {
@@ -199,6 +204,7 @@ export enum SVGIconKind {
   Games,
   GitHub,
   GitHubCircle,
+  GitLab,
   Guide,
   Instagram,
   Link,

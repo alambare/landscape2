@@ -104,16 +104,17 @@ pub async fn get_overlay_data(input: JsValue) -> Result<String, String> {
         LandscapeGames::new(&games_src).await.ok().flatten()
     };
 
-    // Get Crunchbase and GitHub data from deployed full dataset
+    // Get Crunchbase and Git data from deployed full dataset
     let deployed_full_dataset = get_full_dataset(&input.landscape_url).await.map_err(to_str)?;
     let deployed_items = deployed_full_dataset.items;
     let crunchbase_data = deployed_full_dataset.crunchbase_data;
-    let github_data = deployed_full_dataset.github_data;
+    let git_data = deployed_full_dataset.git_data;
 
     // Enrich landscape data with some extra information
     landscape_data.add_crunchbase_data(&crunchbase_data);
     landscape_data.add_featured_items_data(&settings);
-    landscape_data.add_github_data(&github_data);
+    landscape_data.add_github_data(&git_data);
+    landscape_data.add_gitlab_data(&git_data);
     landscape_data.add_member_subcategory(&settings.members_category);
     landscape_data.add_tags(&settings);
     landscape_data.set_enduser_flag(&settings);
@@ -124,7 +125,7 @@ pub async fn get_overlay_data(input: JsValue) -> Result<String, String> {
     let qr_code = String::new();
     let datasets = Datasets {
         base: Base::new(&landscape_data, &settings, &guide, &games, &qr_code),
-        full: Full::new(&landscape_data, &crunchbase_data, &github_data),
+        full: Full::new(&landscape_data, &crunchbase_data, &git_data),
         stats: Stats::new(&landscape_data, &settings),
     };
 

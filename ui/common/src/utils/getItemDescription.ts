@@ -12,11 +12,11 @@ export const getItemDescription = (item?: Item | null): string => {
       const primaryRepo = item.repositories.find((repo: Repository) => repo.primary);
       if (
         primaryRepo &&
-        primaryRepo.github_data &&
-        primaryRepo.github_data.description &&
-        primaryRepo.github_data.description !== ''
+        primaryRepo.git_data &&
+        primaryRepo.git_data.description &&
+        primaryRepo.git_data.description !== ''
       ) {
-        return cleanEmojis(primaryRepo.github_data.description);
+        return cleanEmojis(primaryRepo.git_data.description);
       }
     } else if (
       isUndefined(item.maturity) &&

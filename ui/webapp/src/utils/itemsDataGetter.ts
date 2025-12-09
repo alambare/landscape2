@@ -22,7 +22,7 @@ import {
   ClassifyOption,
   CrunchbaseData,
   FilterOption,
-  GithubData,
+  GitData,
   Group,
   Item,
   LandscapeData,
@@ -160,7 +160,7 @@ export class ItemsDataGetter {
   }
 
   private initialDataPreparation(data: LandscapeData) {
-    const extendedItems = this.extendItemsData(data.items, data.crunchbase_data, data.github_data);
+    const extendedItems = this.extendItemsData(data.items, data.crunchbase_data, data.git_data);
     // Search engine initialization
     search.init(extendedItems);
     this.landscapeData = {
@@ -242,8 +242,8 @@ export class ItemsDataGetter {
     return categoriesWithItems;
   }
 
-  // Extend items with crunchbase and github data
-  private extendItemsData(items?: Item[], crunchbaseData?: CrunchbaseData, githubData?: GithubData): Item[] {
+  // Extend items with crunchbase and git data
+  private extendItemsData(items?: Item[], crunchbaseData?: CrunchbaseData, gitData?: GitData): Item[] {
     const itemsList: Item[] = [];
 
     if (!isUndefined(items)) {
@@ -258,13 +258,13 @@ export class ItemsDataGetter {
           extendedItem.crunchbase_data = crunchbaseData[item.crunchbase_url!];
         }
 
-        // Extend repositories Item with github_data
-        if (!isUndefined(item.repositories) && !isUndefined(githubData)) {
+        // Extend repositories Item with git_data
+        if (!isUndefined(item.repositories) && !isUndefined(gitData)) {
           const tmpRepositories: Repository[] = [];
           item.repositories.forEach((repo: Repository) => {
             const tmpRepo = { ...repo };
-            if (!isUndefined(githubData[repo.url])) {
-              tmpRepo.github_data = githubData[repo.url];
+            if (!isUndefined(gitData[repo.url])) {
+              tmpRepo.git_data = gitData[repo.url];
             }
             tmpRepositories.push(tmpRepo);
           });
@@ -769,8 +769,8 @@ export class ItemsDataGetter {
             i.repositories.forEach((r: Repository) => {
               if (r.license) {
                 options.push(r.license);
-              } else if (r.github_data) {
-                options.push(r.github_data!.license);
+              } else if (r.git_data) {
+                options.push(r.git_data!.license);
               }
             });
           }

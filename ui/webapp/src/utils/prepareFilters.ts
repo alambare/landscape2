@@ -105,8 +105,8 @@ const prepareFilters = (items: Item[], group: string): PreparedFilters => {
       i.repositories.forEach((r: Repository) => {
         if (r.license) {
           licenses.push(r.license);
-        } else if (r.github_data && r.github_data.license) {
-          licenses.push(r.github_data.license);
+        } else if (r.git_data && r.git_data.license) {
+          licenses.push(r.git_data.license);
         }
       });
     }

@@ -32,11 +32,11 @@ class Search {
                 const repo = item.repositories[i];
                 if (
                   repo.primary &&
-                  repo.github_data &&
-                  repo.github_data.description &&
-                  repo.github_data.description !== ''
+                  repo.git_data &&
+                  repo.git_data.description &&
+                  repo.git_data.description !== ''
                 ) {
-                  value = repo.github_data.description;
+                  value = repo.git_data.description;
                   break;
                 }
               }
@@ -47,8 +47,8 @@ class Search {
             if (item.repositories) {
               for (let i = 0; i < item.repositories.length; i++) {
                 const repo = item.repositories[i];
-                if (repo.primary && repo.github_data && repo.github_data.topics) {
-                  value = repo.github_data.topics.join(' ');
+                if (repo.primary && repo.git_data && repo.git_data.topics) {
+                  value = repo.git_data.topics.join(' ');
                   break;
                 }
               }

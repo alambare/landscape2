@@ -426,15 +426,15 @@ impl From<&data::Repository> for Repository {
         Self {
             url: r.url.clone(),
             branch: r.branch.clone(),
-            contributors: r.github_data.as_ref().map(|gh| gh.contributors.count),
-            languages: r.github_data.as_ref().and_then(|gh| gh.languages.clone()),
+            contributors: r.git_data.as_ref().map(|git| git.contributors.count),
+            languages: r.git_data.as_ref().and_then(|git| git.languages.clone()),
             latest_release: r
-                .github_data
+                .git_data
                 .as_ref()
-                .and_then(|gh| gh.latest_release.as_ref().and_then(|release| release.ts)),
-            license: r.github_data.as_ref().and_then(|gh| gh.license.clone()),
+                .and_then(|git| git.latest_release.as_ref().and_then(|release| release.ts)),
+            license: r.git_data.as_ref().and_then(|git| git.license.clone()),
             primary: r.primary,
-            stars: r.github_data.as_ref().map(|gh| gh.stars),
+            stars: r.git_data.as_ref().map(|git| git.stars),
         }
     }
 }

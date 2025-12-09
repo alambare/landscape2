@@ -1,4 +1,4 @@
-import { GithubRepository, Item, Organization, Repository } from 'common';
+import { GitRepository, Item, Organization, Repository } from 'common';
 
 export interface ItemsDataStatus {
   updateStatus(status: boolean): void;
@@ -7,15 +7,15 @@ export interface ItemsDataStatus {
 export interface EmbedData {
   items?: Item[];
   crunchbase_data?: CrunchbaseData;
-  github_data?: GithubData;
+  git_data?: GitData;
 }
 
 export interface CrunchbaseData {
   [key: string]: Organization;
 }
 
-export interface GithubData {
-  [key: string]: GithubRepository;
+export interface GitData {
+  [key: string]: GitRepository;
 }
 
 export class ItemsDataGetter {
@@ -72,7 +72,7 @@ export class ItemsDataGetter {
   }
 
   private async initialDataPreparation(data: EmbedData, name: string) {
-    await this.extendItemsData(data.items, data.crunchbase_data, data.github_data).then(
+    await this.extendItemsData(data.items, data.crunchbase_data, data.git_data).then(
       (items) =>
         (this.landscapeData[name] = {
           ...data,
@@ -100,11 +100,11 @@ export class ItemsDataGetter {
     return;
   }
 
-  // Extend items with crunchbase and github data
+  // Extend items with crunchbase and git data
   private async extendItemsData(
     items?: Item[],
     crunchbaseData?: CrunchbaseData,
-    githubData?: GithubData
+    gitData?: GitData
   ): Promise<Item[]> {
     const itemsList: Item[] = [];
 
@@ -116,13 +116,13 @@ export class ItemsDataGetter {
           extendedItem.crunchbase_data = crunchbaseData[item.crunchbase_url!];
         }
 
-        // Extend repositories Item with github_data
-        if (item.repositories && githubData) {
+        // Extend repositories Item with git_data
+        if (item.repositories && gitData) {
           const tmpRepositories: Repository[] = [];
           item.repositories.forEach((repo: Repository) => {
             const tmpRepo = { ...repo };
-            if (githubData[repo.url]) {
-              tmpRepo.github_data = githubData[repo.url];
+            if (gitData[repo.url]) {
+              tmpRepo.git_data = gitData[repo.url];
             }
             tmpRepositories.push(tmpRepo);
           });
