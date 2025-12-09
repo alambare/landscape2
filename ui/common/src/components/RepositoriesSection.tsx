@@ -89,9 +89,35 @@ const formatRepoUrl = (url: string): string => {
   return repoUrl.pathname.slice(1);
 };
 
+const isGitLabRepo = (repo: Repository): boolean => {
+  // Check if URL contains gitlab
+  return repo.url.includes('gitlab');
+};
+
+const getGoodFirstIssueUrl = (repo: Repository): string => {
+  if (isGitLabRepo(repo)) {
+    return `${repo.url}/-/issues?state=opened&label_name[]=good first issue`;
+  }
+  return `${repo.url}/issues?q=is%3Aopen+is%3Aissue+label%3A"good+first+issue"`;
+};
+
+const getGoodFirstIssueBadgeUrl = (repo: Repository): string | undefined => {
+  // Only GitHub has shields.io badge support
+  if (isGitLabRepo(repo)) {
+    return undefined;
+  }
+  return `https://img.shields.io/github/issues/${formatRepoUrl(
+    repo.url
+  )}/good%20first%20issue.svg?style=flat-square&label=good%20first%20issues&labelColor=e9ecef&color=6c757d`;
+};
+
 const RepositoryInfo = (props: RepoProps) => {
   const formatDate = (date: string): string => {
     return moment(date).format("MMM 'YY");
+  };
+
+  const isGitLab = (): boolean => {
+    return isGitLabRepo(props.repository);
   };
 
   return (
@@ -108,64 +134,72 @@ const RepositoryInfo = (props: RepoProps) => {
               <div class="text-truncate">{props.repository.url}</div>
             </div>
             <div class="d-flex d-md-none flex-row align-items-center text-truncate">
-              <SVGIcon kind={SVGIconKind.GitHub} class={`me-1 ${RepoIcon}`} />
+              <SVGIcon kind={isGitLab() ? SVGIconKind.GitLab : SVGIconKind.GitHub} class={`me-1 ${RepoIcon}`} />
               <div class="text-truncate">{formatRepoUrl(props.repository.url)}</div>
             </div>
           </ExternalLink>
-          <Show when={props.repository.primary || !isUndefined(props.repository.github_data)}>
+          <Show when={props.repository.primary || !isUndefined(props.repository.git_data)}>
             <div class={`d-flex align-items-center flex-wrap flex-md-nowrap mt-2 mt-md-0 ${Badges}`}>
               <Show when={props.repository.primary}>
                 <div class={`me-2 badge rounded-0 text-uppercase ${BadgeOutlineDark} ${MiniBadge}`}>Primary</div>
               </Show>
-              <Show when={!isUndefined(props.repository.license) || !isUndefined(props.repository.github_data)}>
+              <Show when={!isUndefined(props.repository.license) || !isUndefined(props.repository.git_data)}>
                 <div class={`badge rounded-0 me-2 ${BadgeOutlineDark} ${MiniBadge}`}>
-                  {props.repository.license || props.repository.github_data!.license}
+                  {props.repository.license || props.repository.git_data?.license}
                 </div>
               </Show>
               <div class="d-none d-md-flex">
-                <ExternalLink
-                  class={`d-flex ${GoodFirstBadge}`}
-                  href={`https://github.com/${formatRepoUrl(
-                    props.repository.url
-                  )}/issues?q=is%3Aopen+is%3Aissue+label%3A"good+first+issue"`}
-                >
-                  <img
-                    src={`https://img.shields.io/github/issues/${formatRepoUrl(
-                      props.repository.url
-                    )}/good%20first%20issue.svg?style=flat-square&label=good%20first%20issues&labelColor=e9ecef&color=6c757d`}
-                  />
-                </ExternalLink>
+                <Show when={getGoodFirstIssueBadgeUrl(props.repository)}>
+                  <ExternalLink class={`d-flex ${GoodFirstBadge}`} href={getGoodFirstIssueUrl(props.repository)}>
+                    <img src={getGoodFirstIssueBadgeUrl(props.repository)!} />
+                  </ExternalLink>
+                </Show>
+                <Show when={!getGoodFirstIssueBadgeUrl(props.repository)}>
+                  <ExternalLink
+                    class={`badge rounded-0 text-decoration-none ${BadgeOutlineDark} ${MiniBadge}`}
+                    href={getGoodFirstIssueUrl(props.repository)}
+                  >
+                    <Show when={!isUndefined(props.repository.git_data?.good_first_issues)}>
+                      {props.repository.git_data!.good_first_issues} good first issue{props.repository.git_data!.good_first_issues !== 1 ? 's' : ''}
+                    </Show>
+                    <Show when={isUndefined(props.repository.git_data?.good_first_issues)}>
+                      Good first issues
+                    </Show>
+                  </ExternalLink>
+                </Show>
               </div>
             </div>
           </Show>
         </div>
       </div>
-      <Show when={!isUndefined(props.repository.github_data)}>
+      <Show when={!isUndefined(props.repository.git_data)}>
         <div class="row g-4 my-0 mb-2 justify-content-center justify-md-content-start">
           <Box
             class={props.boxClass}
-            value={prettifyNumber(props.repository.github_data!.stars, 1)}
+            value={prettifyNumber(props.repository.git_data!.stars, 1)}
             legend="Stars"
             description="Stars number"
           />
 
           <Box
             class={props.boxClass}
-            value={prettifyNumber(props.repository.github_data!.contributors.count)}
+            value={prettifyNumber(props.repository.git_data!.contributors.count)}
             legend="Contributors"
             description="Contributors number"
           />
 
-          <Box
-            class={props.boxClass}
-            value={formatDate(props.repository.github_data!.first_commit.ts)}
-            legend="First commit"
-            description="First commit date"
-          />
+          <Show when={!isUndefined(props.repository.git_data!.first_commit)}>
+            <Box
+              class={props.boxClass}
+              value={formatDate(props.repository.git_data!.first_commit!.ts)}
+              legend="First commit"
+              description="First commit date"
+            />
+          </Show>
 
           <Box
             class={props.boxClass}
-            value={formatDate(props.repository.github_data!.latest_commit.ts)}
+            value={formatDate(props.repository.git_data!.latest_commit.ts)}
             legend="Latest commit"
             description="Latest commit date"
           />
@@ -173,8 +207,8 @@ const RepositoryInfo = (props: RepoProps) => {
           <Box
             class={props.boxClass}
             value={
-              !isUndefined(props.repository.github_data!.latest_release)
-                ? formatDate(props.repository.github_data!.latest_release!.ts)
+              !isUndefined(props.repository.git_data!.latest_release)
+                ? formatDate(props.repository.git_data!.latest_release!.ts)
                 : '-'
             }
             legend="Latest release"
@@ -182,23 +216,23 @@ const RepositoryInfo = (props: RepoProps) => {
           />
         </div>
 
-        <Show when={!isUndefined(props.repository.github_data!.participation_stats)}>
+        <Show when={!isUndefined(props.repository.git_data!.participation_stats)}>
           <div class="mt-4">
             <div class={`fw-semibold ${SubtitleInSection}`}>Participation stats</div>
             <div class="mx-2 mx-md-0">
-              <ParticipationStats initialStats={props.repository.github_data!.participation_stats} />
+              <ParticipationStats initialStats={props.repository.git_data!.participation_stats!} />
             </div>
           </div>
         </Show>
 
         <Show
           when={
-            !isUndefined(props.repository.github_data!.languages) && !isEmpty(props.repository.github_data!.languages)
+            !isUndefined(props.repository.git_data!.languages) && !isEmpty(props.repository.git_data!.languages)
           }
         >
           <div class="mt-4">
             <div class={`fw-semibold ${SubtitleInSection}`}>Languages</div>
-            <LanguagesStats initialLanguages={props.repository.github_data!.languages!} boxClass={props.boxClass} />
+            <LanguagesStats initialLanguages={props.repository.git_data!.languages!} boxClass={props.boxClass} />
           </div>
         </Show>
       </Show>

@@ -199,20 +199,21 @@ export interface Repository {
   url: string;
   license?: string;
   branch?: string;
-  github_data?: GithubRepository;
+  git_data?: GitRepository;
   primary: boolean;
 }
 
-export interface GithubRepository {
+export interface GitRepository {
   contributors: Contributors;
   description: string;
   first_commit: Commit;
   generated_at: number;
+  good_first_issues?: number;
   languages?: { [key: string]: number };
   latest_commit: Commit;
   latest_release?: Release;
   license: string;
-  participation_stats: number[];
+  participation_stats?: number[];
   stars: number;
   topics: string[];
   url: string;
@@ -237,15 +238,15 @@ export interface LandscapeData {
   categories: Category[];
   items?: Item[];
   crunchbase_data?: CrunchbaseData;
-  github_data?: GithubData;
+  git_data?: GitData;
 }
 
 export interface CrunchbaseData {
   [key: string]: Organization;
 }
 
-export interface GithubData {
-  [key: string]: GithubRepository;
+export interface GitData {
+  [key: string]: GitRepository;
 }
 
 export interface FilterSection {

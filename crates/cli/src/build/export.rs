@@ -139,15 +139,15 @@ impl From<&data::Item> for Item {
         if let Some(repo) = di.primary_repository() {
             item.license.clone_from(&repo.license); // License override
 
-            if let Some(gh_data) = &repo.github_data {
-                item.github_contributors_count = Some(gh_data.contributors.count);
-                item.github_contributors_link = Some(gh_data.contributors.url.clone());
-                item.github_description = Some(gh_data.description.clone());
-                item.github_latest_commit_link = Some(gh_data.latest_commit.url.clone());
-                item.github_repo = Some(gh_data.url.clone());
-                item.github_stars = Some(gh_data.stars);
+            if let Some(git_data) = &repo.git_data {
+                item.github_contributors_count = Some(git_data.contributors.count);
+                item.github_contributors_link = Some(git_data.contributors.url.clone());
+                item.github_description = Some(git_data.description.clone());
+                item.github_latest_commit_link = Some(git_data.latest_commit.url.clone());
+                item.github_repo = Some(git_data.url.clone());
+                item.github_stars = Some(git_data.stars);
 
-                if let Some(commit) = &gh_data.first_commit {
+                if let Some(commit) = &git_data.first_commit {
                     item.github_start_commit_link = Some(commit.url.clone());
 
                     if let Some(date) = commit.ts {
@@ -155,11 +155,11 @@ impl From<&data::Item> for Item {
                     }
                 }
 
-                if let Some(date) = gh_data.latest_commit.ts {
+                if let Some(date) = git_data.latest_commit.ts {
                     item.github_latest_commit_date = Some(fmt_date(date.date_naive()));
                 }
 
-                if let Some(release) = &gh_data.latest_release {
+                if let Some(release) = &git_data.latest_release {
                     if let Some(date) = release.ts {
                         item.github_latest_release_date = Some(fmt_date(date.date_naive()));
                     }
@@ -167,7 +167,7 @@ impl From<&data::Item> for Item {
                 }
 
                 if item.license.is_none()
-                    && let Some(license) = &gh_data.license
+                    && let Some(license) = &git_data.license
                 {
                     item.license = Some(license.clone());
                 }

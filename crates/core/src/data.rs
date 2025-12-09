@@ -39,8 +39,8 @@ pub type CrunchbaseData = BTreeMap<CrunchbaseUrl, Organization>;
 /// Type alias to represent a crunchbase url.
 pub type CrunchbaseUrl = String;
 
-/// Type alias to represent some repositories' GitHub data.
-pub type GithubData = BTreeMap<RepositoryUrl, RepositoryGithubData>;
+/// Type alias to represent git repositories data (GitHub and GitLab).
+pub type GitData = BTreeMap<RepositoryUrl, RepositoryGitData>;
 
 /// Type alias to represent a GitHub repository url.
 pub type RepositoryUrl = String;
@@ -183,14 +183,14 @@ impl LandscapeData {
 
     /// Add items repositories GitHub data.
     #[instrument(skip_all)]
-    pub fn add_github_data(&mut self, github_data: &GithubData) {
+    pub fn add_github_data(&mut self, github_data: &GitData) {
         for item in &mut self.items {
             // Add GH data to each of the items repositories
             if item.repositories.is_some() {
                 let mut repositories = vec![];
                 for mut repo in item.repositories.clone().unwrap_or_default() {
-                    if let Some(repo_github_data) = github_data.get(&repo.url) {
-                        repo.github_data = Some(repo_github_data.clone());
+                    if let Some(repo_data) = github_data.get(&repo.url) {
+                        repo.git_data = Some(repo_data.clone());
                     }
                     repositories.push(repo);
                 }
@@ -200,7 +200,33 @@ impl LandscapeData {
             // Set item's oss field
             if let Some(repo) = item.primary_repository()
                 && (repo.license.is_some()
-                    || repo.github_data.as_ref().is_some_and(|gh| gh.license.is_some()))
+                    || repo.git_data.as_ref().is_some_and(|data| data.license.is_some()))
+            {
+                item.oss = Some(true);
+            }
+        }
+    }
+
+    /// Add items repositories GitLab data.
+    #[instrument(skip_all)]
+    pub fn add_gitlab_data(&mut self, gitlab_data: &GitData) {
+        for item in &mut self.items {
+            // Add GL data to each of the items repositories
+            if item.repositories.is_some() {
+                let mut repositories = vec![];
+                for mut repo in item.repositories.clone().unwrap_or_default() {
+                    if let Some(repo_data) = gitlab_data.get(&repo.url) {
+                        repo.git_data = Some(repo_data.clone());
+                    }
+                    repositories.push(repo);
+                }
+                item.repositories = Some(repositories);
+            }
+
+            // Set item's oss field
+            if let Some(repo) = item.primary_repository()
+                && (repo.license.is_some()
+                    || repo.git_data.as_ref().is_some_and(|data| data.license.is_some()))
             {
                 item.oss = Some(true);
             }
@@ -391,7 +417,7 @@ impl From<legacy::LandscapeData> for LandscapeData {
                         repositories.push(Repository {
                             url,
                             branch: legacy_item.branch,
-                            github_data: None,
+                            git_data: None,
                             license: legacy_item.license,
                             primary: Some(true),
                         });
@@ -401,7 +427,7 @@ impl From<legacy::LandscapeData> for LandscapeData {
                             repositories.push(Repository {
                                 url: entry.repo_url,
                                 branch: entry.branch,
-                                github_data: None,
+                                git_data: None,
                                 license: entry.license,
                                 primary: Some(false),
                             });
@@ -698,7 +724,7 @@ impl Item {
         // Otherwise, use primary repository description if available
         if description.is_none() || description.expect("it to be present").is_empty() {
             description =
-                self.primary_repository().and_then(|r| r.github_data.as_ref().map(|gh| &gh.description));
+                self.primary_repository().and_then(|r| r.git_data.as_ref().map(|git| &git.description));
         }
 
         // Otherwise, use Crunchbase data description
@@ -926,8 +952,8 @@ pub struct Repository {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branch: Option<String>,
 
-    #[serde(skip_serializing)]
-    pub github_data: Option<RepositoryGithubData>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub git_data: Option<RepositoryGitData>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
@@ -936,14 +962,13 @@ pub struct Repository {
     pub primary: Option<bool>,
 }
 
-/// Repository information collected from GitHub.
+/// Repository information collected from GitHub or GitLab.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct RepositoryGithubData {
+pub struct RepositoryGitData {
     pub contributors: Contributors,
     pub description: String,
     pub generated_at: DateTime<Utc>,
     pub latest_commit: Commit,
-    pub participation_stats: Vec<i64>,
     pub stars: i64,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub topics: Vec<String>,
@@ -960,6 +985,14 @@ pub struct RepositoryGithubData {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
+
+    // GitHub-specific fields
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub participation_stats: Option<Vec<i64>>,
+
+    // GitLab-specific fields
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub good_first_issues: Option<usize>,
 }
 
 #[cfg(test)]
@@ -1147,19 +1180,19 @@ mod tests {
             ..Default::default()
         });
 
-        let mut github_data = GithubData::default();
-        let repository_github_data = RepositoryGithubData {
+        let mut git_data = GitData::default();
+        let repository_data = RepositoryGitData {
             description: "test".to_string(),
             license: Some("Apache-2.0".to_string()),
             ..Default::default()
         };
-        github_data.insert(repository_url.clone(), repository_github_data.clone());
+        git_data.insert(repository_url.clone(), repository_data.clone());
 
-        landscape_data.add_github_data(&github_data);
+        landscape_data.add_github_data(&git_data);
         assert_eq!(
             landscape_data.items[0].repositories,
             Some(vec![Repository {
-                github_data: Some(repository_github_data),
+                git_data: Some(repository_data),
                 ..repository
             }])
         );
@@ -1520,14 +1553,14 @@ mod tests {
                     Repository {
                         url: "repo_url".to_string(),
                         branch: Some("branch".to_string()),
-                        github_data: None,
+                        git_data: None,
                         license: Some("license".to_string()),
                         primary: Some(true),
                     },
                     Repository {
                         url: "additional_repo_url".to_string(),
                         branch: Some("branch".to_string()),
-                        github_data: None,
+                        git_data: None,
                         license: Some("license".to_string()),
                         primary: Some(false),
                     },
@@ -1585,7 +1618,7 @@ mod tests {
         let item = Item {
             description: Some("item description".to_string()),
             repositories: Some(vec![Repository {
-                github_data: Some(RepositoryGithubData {
+                git_data: Some(RepositoryGitData {
                     description: "repository description".to_string(),
                     ..Default::default()
                 }),
@@ -1606,7 +1639,7 @@ mod tests {
     fn item_description_from_repository() {
         let item = Item {
             repositories: Some(vec![Repository {
-                github_data: Some(RepositoryGithubData {
+                git_data: Some(RepositoryGitData {
                     description: "repository description".to_string(),
                     ..Default::default()
                 }),

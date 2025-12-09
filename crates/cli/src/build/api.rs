@@ -410,7 +410,7 @@ impl From<&data::Repository> for Repository {
         Self {
             url: r.url.clone(),
             branch: r.branch.clone(),
-            languages: r.github_data.as_ref().and_then(|gh| gh.languages.clone()),
+            languages: r.git_data.as_ref().and_then(|git| git.languages.clone()),
             primary: r.primary,
         }
     }

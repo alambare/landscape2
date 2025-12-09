@@ -7,7 +7,7 @@
 //! consumed by other applications, as they can change at any time.
 
 use crate::{
-    data::{CrunchbaseData, GithubData, LandscapeData},
+    data::{CrunchbaseData, GitData, LandscapeData},
     games::LandscapeGames,
     guide::LandscapeGuide,
     settings::LandscapeSettings,
@@ -21,7 +21,7 @@ use self::{base::Base, embed::Embed, full::Full};
 pub struct NewDatasetsInput<'a> {
     pub crunchbase_data: &'a CrunchbaseData,
     pub games: &'a Option<LandscapeGames>,
-    pub github_data: &'a GithubData,
+    pub git_data: &'a GitData,
     pub guide: &'a Option<LandscapeGuide>,
     pub landscape_data: &'a LandscapeData,
     pub qr_code: &'a String,
@@ -51,7 +51,7 @@ impl Datasets {
         Datasets {
             base: Base::new(i.landscape_data, i.settings, i.guide, i.games, i.qr_code),
             embed: Embed::new(i.landscape_data, i.settings),
-            full: Full::new(i.landscape_data, i.crunchbase_data, i.github_data),
+            full: Full::new(i.landscape_data, i.crunchbase_data, i.git_data),
             stats: Stats::new(i.landscape_data, i.settings),
         }
     }
@@ -554,7 +554,7 @@ pub mod embed {
 /// information is used by the web application to power features that require
 /// some extra data not available in the base dataset.
 pub mod full {
-    use crate::data::{CrunchbaseData, GithubData, Item, LandscapeData};
+    use crate::data::{CrunchbaseData, GitData, Item, LandscapeData};
     use serde::{Deserialize, Serialize};
     use std::collections::BTreeMap;
 
@@ -565,7 +565,7 @@ pub mod full {
         pub crunchbase_data: CrunchbaseData,
 
         #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-        pub github_data: GithubData,
+        pub git_data: GitData,
 
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         pub items: Vec<Item>,
@@ -577,11 +577,11 @@ pub mod full {
         pub fn new(
             landscape_data: &LandscapeData,
             crunchbase_data: &CrunchbaseData,
-            github_data: &GithubData,
+            git_data: &GitData,
         ) -> Self {
             Full {
                 crunchbase_data: crunchbase_data.clone(),
-                github_data: github_data.clone(),
+                git_data: git_data.clone(),
                 items: landscape_data.items.clone(),
             }
         }
@@ -609,7 +609,7 @@ mod tests {
         let input = NewDatasetsInput {
             crunchbase_data: &CrunchbaseData::default(),
             games: &None,
-            github_data: &GithubData::default(),
+            git_data: &GitData::default(),
             guide: &None,
             landscape_data: &LandscapeData::default(),
             qr_code: &String::default(),
@@ -965,13 +965,13 @@ mod tests {
         };
         let mut crunchbase_data = CrunchbaseData::default();
         crunchbase_data.insert("https:://crunchbase.url".to_string(), Organization::default());
-        let mut github_data = GithubData::default();
-        github_data.insert("https:://github.url".to_string(), RepositoryGithubData::default());
+        let mut git_data = GitData::default();
+        git_data.insert("https:://github.url".to_string(), RepositoryGitData::default());
 
-        let full = Full::new(&landscape_data, &crunchbase_data, &github_data);
+        let full = Full::new(&landscape_data, &crunchbase_data, &git_data);
         let expected_full = Full {
             crunchbase_data,
-            github_data,
+            git_data,
             items: vec![item],
         };
         pretty_assertions::assert_eq!(full, expected_full);

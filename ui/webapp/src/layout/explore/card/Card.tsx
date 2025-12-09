@@ -41,8 +41,8 @@ const Card = (props: Props) => {
           setPrimaryRepoUrl(repo.url);
         }
 
-        if (repo.github_data) {
-          starsCount = starsCount || 0 + repo.github_data.stars;
+        if (repo.git_data) {
+          starsCount = starsCount || 0 + repo.git_data.stars;
         }
       });
       setStars(starsCount);

@@ -33,8 +33,8 @@ const sortItems = (items: Item[], option: SortOption, direction: SortDirection):
             if (item.repositories) {
               let stars = 0;
               item.repositories.forEach((repo) => {
-                if (repo.github_data) {
-                  stars += repo.github_data.stars;
+                if (repo.git_data) {
+                  stars += repo.git_data.stars;
                 }
               });
               return stars;
@@ -55,8 +55,8 @@ const sortItems = (items: Item[], option: SortOption, direction: SortDirection):
             if (item.repositories) {
               let contributors = 0;
               const primaryRepo = item.repositories.find((repo) => repo.primary === true);
-              if (primaryRepo && primaryRepo.github_data) {
-                contributors += primaryRepo.github_data.contributors.count;
+              if (primaryRepo && primaryRepo.git_data) {
+                contributors += primaryRepo.git_data.contributors.count;
               }
               return contributors;
             } else {
@@ -76,8 +76,8 @@ const sortItems = (items: Item[], option: SortOption, direction: SortDirection):
             let firstCommit: number | undefined = undefined;
             if (item.repositories) {
               item.repositories.forEach((repo) => {
-                if (repo.github_data) {
-                  const commitDate = new Date(repo.github_data.first_commit.ts).valueOf();
+                if (repo.git_data) {
+                  const commitDate = new Date(repo.git_data.first_commit.ts).valueOf();
                   if (isUndefined(firstCommit) || commitDate < firstCommit) {
                     firstCommit = commitDate;
                   }
@@ -103,8 +103,8 @@ const sortItems = (items: Item[], option: SortOption, direction: SortDirection):
             let latestCommit: number | undefined = undefined;
             if (item.repositories) {
               item.repositories.forEach((repo) => {
-                if (repo.github_data) {
-                  const commitDate = new Date(repo.github_data.latest_commit.ts).valueOf();
+                if (repo.git_data) {
+                  const commitDate = new Date(repo.git_data.latest_commit.ts).valueOf();
                   if (isUndefined(latestCommit) || commitDate < latestCommit) {
                     latestCommit = commitDate;
                   }

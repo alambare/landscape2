@@ -27,5 +27,5 @@ export {
 export { useBodyScroll, useBreakpointDetect, useOutsideClick } from './hooks';
 
 // Types
-export type { GithubRepository, Item, Organization, Repository } from './types/types';
+export type { GitRepository, Item, Organization, Repository } from './types/types';
 export { SVGIconKind } from './types/types';

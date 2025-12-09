@@ -391,12 +391,12 @@ impl RepositoriesStats {
                         increment(&mut stats.licenses, license, 1);
                     }
 
-                    if let Some(gh_data) = &repo.github_data {
+                    if let Some(git_data) = &repo.git_data {
                         // Contributors
-                        stats.contributors += gh_data.contributors.count as u64;
+                        stats.contributors += git_data.contributors.count as u64;
 
                         // Languages
-                        if let Some(languages) = &gh_data.languages {
+                        if let Some(languages) = &git_data.languages {
                             for (language, value) in languages {
                                 // All repositories source code bytes
                                 stats.bytes += value.unsigned_abs();
@@ -410,24 +410,26 @@ impl RepositoriesStats {
                         }
 
                         // Licenses
-                        if !license_overriden && let Some(license) = &gh_data.license {
+                        if !license_overriden && let Some(license) = &git_data.license {
                             increment(&mut stats.licenses, license, 1);
                         }
 
-                        // Participation stats
-                        if stats.participation_stats.is_empty() {
-                            stats.participation_stats.clone_from(&gh_data.participation_stats);
-                        } else {
-                            stats.participation_stats = stats
-                                .participation_stats
-                                .iter()
-                                .zip(&gh_data.participation_stats)
-                                .map(|(accum_v, v)| accum_v + v)
-                                .collect();
+                        // Participation stats (GitHub only)
+                        if let Some(participation_stats) = &git_data.participation_stats {
+                            if stats.participation_stats.is_empty() {
+                                stats.participation_stats.clone_from(participation_stats);
+                            } else {
+                                stats.participation_stats = stats
+                                    .participation_stats
+                                    .iter()
+                                    .zip(participation_stats)
+                                    .map(|(accum_v, v)| accum_v + v)
+                                    .collect();
+                            }
                         }
 
                         // Stars
-                        stats.stars += gh_data.stars.unsigned_abs();
+                        stats.stars += git_data.stars.unsigned_abs();
                     }
                 }
             }
@@ -501,7 +503,7 @@ mod tests {
 
     use crate::data::{
         Acquisition, Contributors, FundingRound, Item, ItemAudit, Organization, Repository,
-        RepositoryGithubData,
+        RepositoryGitData,
     };
 
     use super::*;
@@ -732,7 +734,7 @@ mod tests {
                     name: "Project 1".to_string(),
                     repositories: Some(vec![Repository {
                         url: "https://repository1.url".to_string(),
-                        github_data: Some(RepositoryGithubData {
+                        git_data: Some(RepositoryGitData {
                             contributors: Contributors {
                                 count: 1,
                                 ..Default::default()
@@ -756,7 +758,7 @@ mod tests {
                                 .collect(),
                             ),
                             license: Some("Apache-2.0".to_string()),
-                            participation_stats: vec![1, 2, 3],
+                            participation_stats: Some(vec![1, 2, 3]),
                             stars: 10,
                             ..Default::default()
                         }),
@@ -770,7 +772,7 @@ mod tests {
                         Repository {
                             license: Some("MIT".to_string()),
                             url: "https://repository2.url".to_string(),
-                            github_data: Some(RepositoryGithubData {
+                            git_data: Some(RepositoryGitData {
                                 contributors: Contributors {
                                     count: 2,
                                     ..Default::default()
@@ -792,7 +794,7 @@ mod tests {
                                     .collect(),
                                 ),
                                 license: Some("Apache-2.0".to_string()),
-                                participation_stats: vec![4, 5, 6],
+                                participation_stats: Some(vec![4, 5, 6]),
                                 stars: 20,
                                 ..Default::default()
                             }),
@@ -801,7 +803,7 @@ mod tests {
                         Repository {
                             // This repository will be ignored as it has the same URL as the previous one
                             url: "https://repository2.url".to_string(),
-                            github_data: Some(RepositoryGithubData {
+                            git_data: Some(RepositoryGitData {
                                 stars: 20,
                                 ..Default::default()
                             }),

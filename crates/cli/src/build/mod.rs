@@ -21,7 +21,7 @@ use headless_chrome::{
     types::PrintToPdfOptions,
 };
 use landscape2_core::{
-    data::{self, CrunchbaseData, DataSource, GithubData, Item, LandscapeData},
+    data::{self, CrunchbaseData, DataSource, GitData, Item, LandscapeData},
     datasets::{Datasets, NewDatasetsInput, embed::EmbedView, full::Full},
     games::{GamesSource, LandscapeGames},
     guide::{GuideSource, LandscapeGuide},
@@ -47,6 +47,7 @@ use self::{
     crunchbase::collect_crunchbase_data,
     export::generate_items_csv,
     github::collect_github_data,
+    gitlab::collect_gitlab_data,
     logos::{LogosSource, prepare_logo},
     projects::{ProjectsMd, generate_projects_csv},
 };
@@ -57,6 +58,7 @@ mod clomonitor;
 mod crunchbase;
 mod export;
 mod github;
+mod gitlab;
 mod logos;
 mod projects;
 
@@ -177,16 +179,22 @@ pub async fn build(args: &BuildArgs) -> Result<()> {
     prepare_settings_images(&mut settings, &args.output_dir).await?;
 
     // Collect data from external services
-    let (crunchbase_data, github_data) = tokio::try_join!(
+    let (crunchbase_data, git_data_github, git_data_gitlab) = tokio::try_join!(
         collect_crunchbase_data(&cache, &landscape_data),
-        collect_github_data(&cache, &landscape_data)
+        collect_github_data(&cache, &landscape_data),
+        collect_gitlab_data(&cache, &landscape_data)
     )?;
+
+    // Merge GitHub and GitLab data into a single git_data collection
+    let mut git_data = git_data_github;
+    git_data.extend(git_data_gitlab);
 
     // Enrich landscape data with some extra information from the settings and
     // external services
     landscape_data.add_crunchbase_data(&crunchbase_data);
     landscape_data.add_featured_items_data(&settings);
-    landscape_data.add_github_data(&github_data);
+    landscape_data.add_github_data(&git_data);
+    landscape_data.add_gitlab_data(&git_data);
     landscape_data.add_member_subcategory(&settings.members_category);
     landscape_data.add_tags(&settings);
     landscape_data.set_enduser_flag(&settings);
@@ -211,7 +219,7 @@ pub async fn build(args: &BuildArgs) -> Result<()> {
         &NewDatasetsInput {
             crunchbase_data: &crunchbase_data,
             games: &games,
-            github_data: &github_data,
+            git_data: &git_data,
             guide: &guide,
             landscape_data: &landscape_data,
             qr_code: &qr_code,
@@ -864,22 +872,24 @@ fn prepare_view_full_dataset(full: &Full, view: &EmbedView) -> Full {
         }
     }
 
-    // GitHub data
-    let mut github_data: GithubData = BTreeMap::new();
-    for (url, repo_github_data) in &full.github_data {
+    // Git data
+    let mut git_data: GitData = BTreeMap::new();
+    
+    // Collect from Git repo data
+    for (url, repo_git_data) in &full.git_data {
         if items.iter().any(|i| {
             if let Some(repositories) = &i.repositories {
                 return repositories.iter().any(|r| r.url == *url);
             }
             false
         }) {
-            github_data.insert(url.clone(), repo_github_data.clone());
+            git_data.insert(url.clone(), repo_git_data.clone());
         }
     }
 
     Full {
         crunchbase_data,
-        github_data,
+        git_data,
         items,
     }
 }
