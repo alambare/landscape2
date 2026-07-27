@@ -3,6 +3,12 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "common": ["src/test-utils/commonMock.tsx"],
+      "solid-js": ["node_modules/solid-js"],
+      "solid-js/*": ["node_modules/solid-js/*"]
+    },
     "allowImportingTsExtensions": false,
     "noEmit": false,
     "isolatedModules": false,
@@ -10,6 +16,6 @@
     "allowSyntheticDefaultImports": true,
     "types": ["jest", "node"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../common/src/**/*", "../embed-item/src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
